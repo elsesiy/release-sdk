@@ -31,7 +31,9 @@ import (
 
 // Default target to run when none is specified
 // If not set, running mage will list available targets
-var Default = Verify
+var (
+	Default = Verify
+)
 
 const (
 	binDir    = "bin"
@@ -88,6 +90,16 @@ func E2ETest() error {
 	return nil
 }
 
+// LocalE2ETest runs the end-to-end test functions locally.
+func LocalE2ETest() error {
+	// Setup local registry to push images to
+	if err := sh.Run("docker", "run", "--name", "reg", "-d", "-p", "5000:5000", "registry:2"); err != nil {
+		return err
+	}
+
+	return E2ETest()
+}
+
 // Verify runs repository verification scripts
 func Verify() error {
 	fmt.Println("Ensuring mage is available...")
@@ -125,7 +137,7 @@ func Verify() error {
 
 func Clean() {
 	fmt.Println("Cleaning workspace...")
-	toClean := []string{"bin"}
+	toClean := []string{"bin", "test/e2e/release-sdk-testkey.key", "test/e2e/release-sdk-testkey.pub"}
 
 	for _, clean := range toClean {
 		sh.Rm(clean)

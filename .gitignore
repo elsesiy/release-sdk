@@ -2,3 +2,4 @@ bin/
 .vscode/
 tmp/
 .idea/
+test/e2e/release-sdk-testkey.*

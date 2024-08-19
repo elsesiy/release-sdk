@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"strings"
 	"testing"
 
@@ -37,15 +38,32 @@ const (
 	registry          = "localhost:5000"
 	imageName         = "test"
 	registryWithImage = registry + "/" + imageName
-	imageRef          = registryWithImage + ":latest"
 )
 
+var imageRef = registryWithImage + ":latest"
+
 func TestSignImageSuccess(t *testing.T) {
+	isCI := os.Getenv("CI") != ""
+
 	// Test the prerequisites
 	opts := sign.Default()
 	opts.IgnoreTlog = true
 	opts.CertIdentityRegexp = "https://github.com/kubernetes-sigs/release-sdk/.github/workflows/e2e.yml@.*"
 	opts.CertOidcIssuer = "https://token.actions.githubusercontent.com"
+
+	// Allow for local testing
+	if !isCI {
+		// Build and push test image
+		imageRef = buildAndPushTestImage(t)
+
+		// Generate signing keypair
+		genSignKeyPair(t)
+
+		opts.EnableTokenProviders = false
+		opts.IdentityToken = "test"
+		opts.PrivateKeyPath = "./release-sdk-testkey.key"
+		opts.PublicKeyPath = "./release-sdk-testkey.pub"
+	}
 
 	signer := sign.New(opts)
 	signed, err := signer.IsImageSigned(imageRef)
